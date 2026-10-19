@@ -1,0 +1,19 @@
+{
+  "name": "opencode-teamos",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "server",
+    "admin-web",
+    "launcher"
+  ],
+  "scripts": {
+    "dev:services": "sh scripts/dev-services.sh start",
+    "dev:services:stop": "sh scripts/dev-services.sh stop",
+    "dev:server": "bun run --cwd server dev",
+    "dev:web": "bun run --cwd admin-web dev",
+    "build": "bun run --cwd admin-web build",
+    "typecheck": "bun run --cwd server typecheck && bun run --cwd admin-web typecheck && bun run --cwd launcher typecheck",
+    "build:launcher": "bun run --cwd launcher build"
+  }
+}

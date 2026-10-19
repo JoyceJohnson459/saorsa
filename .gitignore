@@ -1,0 +1,8 @@
+node_modules
+.data
+dist
+.env
+*.log
+admin-web/e2e/.state.json
+test-results
+playwright-report

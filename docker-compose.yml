@@ -1,0 +1,71 @@
+# Saorsa — single-host deployment.
+# Every port binds to 127.0.0.1: put an HTTPS reverse proxy (Caddy/Nginx) in front for member access.
+# PostgreSQL and Redis are never published; only the saorsa service reaches them on the internal network.
+# Project, database and volume names keep the original "teamos" ids so existing data volumes are reused.
+name: teamos
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: teamos
+      POSTGRES_DB: teamos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teamos -d teamos"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}"]
+    volumes:
+      - redis-data:/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  saorsa:
+    build: .
+    image: saorsa:local
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      SAORSA_DATABASE_URL: postgres://teamos:${POSTGRES_PASSWORD}@postgres:5432/teamos
+      SAORSA_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      SAORSA_PUBLIC_URL: ${SAORSA_PUBLIC_URL:?set SAORSA_PUBLIC_URL in .env}
+      SAORSA_MASTER_KEYS: ${SAORSA_MASTER_KEYS:?set SAORSA_MASTER_KEYS in .env}
+      SAORSA_MASTER_KEY_ACTIVE: ${SAORSA_MASTER_KEY_ACTIVE:-1}
+      SAORSA_BOOTSTRAP_TOKEN: ${SAORSA_BOOTSTRAP_TOKEN:-}
+      SAORSA_UPSTREAM_HOST_ALLOWLIST: ${SAORSA_UPSTREAM_HOST_ALLOWLIST:-}
+      SAORSA_TRUST_PROXY: ${SAORSA_TRUST_PROXY:-true}
+      SAORSA_COOKIE_SECURE: ${SAORSA_COOKIE_SECURE:-true}
+      SAORSA_LOG_LEVEL: ${SAORSA_LOG_LEVEL:-info}
+      SAORSA_TOOL_TOKEN_TTL_HOURS: ${SAORSA_TOOL_TOKEN_TTL_HOURS:-12}
+    ports:
+      - "127.0.0.1:${SAORSA_HTTP_PORT:-8787}:8787"
+    networks: [internal]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+networks:
+  internal: {}
+
+volumes:
+  postgres-data: {}
+  redis-data: {}
