@@ -23,7 +23,7 @@ saorsa/
   docs/
 ```
 
-> 所有“已验证”的工具接入均基于标注 TEST 的 mock 上游；真实供应商调用尚未验证。监控覆盖范围仅限经 Saorsa 网关的受管调用，防绕过需结合托管客户端、出口网络策略与终端管理（见 [docs/security.md](docs/security.md)）。
+> 监控覆盖范围仅限经 Saorsa 网关的受管调用，防绕过需结合托管客户端、出口网络策略与终端管理（见 [docs/security.md](docs/security.md)）。
 
 ## License
 
